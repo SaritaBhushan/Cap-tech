@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  db:
+    image: mysql:8.0
+    ports:
+      - '3306:3306'
+    environment:
+       MYSQL_DATABASE: 'userJWTAuth'
+       MYSQL_USER: 'mig'
+       MYSQL_PASSWORD: 'mig123456'
+       MYSQL_ROOT_PASSWORD: 'mig123456'
+  web:
+    build: .
+    command: python3 manage.py runserver 10.129.103.87:8000
+    volumes:
+      - .:/UserJWTAuth
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
