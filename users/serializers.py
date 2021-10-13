@@ -1,11 +1,12 @@
 from rest_framework import serializers, fields
 from users.models import User_role,  User_permission, UserProfile #User_details,
-from django.contrib.auth import get_user_model, password_validation
+# from django.contrib.auth import get_user_model, password_validation
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.apps import apps
 
 # User = get_user_model()
-
 
 import hashlib
 import base64
@@ -21,6 +22,15 @@ iterations = 36000
 length=12
 allowed_chars='abcdefghijklmnopqrstuvwxyz''ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
+class AuthTokenObtainPairSerializer(TokenObtainPairSerializer):
+
+    @classmethod
+    def get_token(cls, user):
+        token = super(AuthTokenObtainPairSerializer, cls).get_token(user)
+
+        # Add custom claims
+        token['username'] = user.username
+        return token
 
 class UserRoleSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
@@ -36,7 +46,7 @@ class  UserSerializer(serializers.HyperlinkedModelSerializer):
         )
     class Meta:
         model = User
-        fields = ['username', 'email', 'password']
+        fields = ['username', 'email', 'password', 'is_active', 'is_staff', 'is_superuser']
 
     def create(self, validated_data):
         # create user
@@ -80,6 +90,10 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         fields = '__all__'
 
 class UserPermissionSerializer(serializers.HyperlinkedModelSerializer):
+    modeldict=apps.all_models['users'] #returns dict with all models defined
+    ModelCHOICES=tuple((x,x) for x in modeldict.keys())
+    model = serializers.ChoiceField(
+                        choices = ModelCHOICES)
     class Meta:
         model = User_permission
         fields = '__all__'
@@ -87,38 +101,3 @@ class UserPermissionSerializer(serializers.HyperlinkedModelSerializer):
 class UserLoginSerializer(serializers.Serializer):
     email = serializers.CharField(max_length=300, required=True)
     password = serializers.CharField(required=True, write_only=True)
-
-
-# class AuthUserSerializer(serializers.ModelSerializer):
-#     auth_token = serializers.SerializerMethodField()
-
-#     class Meta:
-#          model = User
-#          fields = ('id', 'email', 'first_name', 'last_name', 'is_active', 'is_staff')
-#          read_only_fields = ('id', 'is_active', 'is_staff')
-    
-#     def get_auth_token(self, obj):
-#         token = Token.objects.create(user=obj)
-#         return token.key
-
-class EmptySerializer(serializers.Serializer):
-    pass
-
-# class UserRegisterSerializer(serializers.ModelSerializer):
-#     """
-#     A user serializer for registering the user
-#     """
-
-#     class Meta:
-#         model = User
-#         fields = ('id', 'email', 'password', 'first_name', 'last_name')
-
-#     def validate_email(self, value):
-#         user = User.objects.filter(email=email)
-#         if user:
-#             raise serializers.ValidationError("Email is already taken")
-#         return BaseUserManager.normalize_email(value)
-
-#     def validate_password(self, value):
-#         password_validation.validate_password(value)
-#         return value
